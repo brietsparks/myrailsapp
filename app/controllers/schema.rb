@@ -1,18 +1,26 @@
+# Schema for the GraphQL API
+
 ProjectType = GraphQL::ObjectType.define do
   name 'Project'
-  description 'A project'
+  description 'A contextual grouping of work experiences'
 
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
-  field :subProjects, types[ProjectType]
+  field :contributions, types[ContributionType]
+  field :childProjects, types[ProjectType]
   field :parentProjects, types[ProjectType]
 end
 
-# ProjectsType = GraphQL::ListType.define do
-#
-# end
+ContributionType = GraphQL::ObjectType.define do
+  name 'Contribution'
+  description 'A concrete work experience'
 
+  field :uuid, !types.ID
+  field :title, !types.String
+  field :summary, types.String
+  field :parentProjects, types[ProjectType]
+end
 
 QueryType = GraphQL::ObjectType.define do
   name 'Query'
