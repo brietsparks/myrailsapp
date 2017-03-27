@@ -1,5 +1,7 @@
-class GraphqlController < ApplicationController
-  # skip_before_filter :authenticate_request!
+class GraphqlController < ApiController
+  def show
+    render json: {foo: 'bar'}
+  end
 
   def query
     variables = params[:variables]
