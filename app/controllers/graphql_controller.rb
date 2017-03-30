@@ -1,4 +1,6 @@
 class GraphqlController < ApiController
+  skip_before_action :authenticate_user!
+
   def show
     render json: {foo: 'bar'}
   end

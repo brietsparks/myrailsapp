@@ -1,20 +1,19 @@
 require_relative 'boot'
 
 require 'rails/all'
+
 require 'neo4j/railtie'
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-module Resumapp
+module R2a
   class Application < Rails::Application
 
-      # ...
-      # config.generators { |g| g.orm :neo4j }
-
-    # Settings in config/environments/* take precedence over those specified here.
-    # Application configuration should go into files in config/initializers
-    # -- all .rb files in that directory are automatically loaded.
+    # remove Session functionality
+    config.middleware.delete ActionDispatch::Cookies
+    config.middleware.delete ActionDispatch::Session::CookieStore
+    config.middleware.delete ActionDispatch::Flash
   end
 end

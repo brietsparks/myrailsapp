@@ -6,7 +6,7 @@ Devise.setup do |config|
   # confirmation, reset password and unlock tokens in the database.
   # Devise will use the `secret_key_base` as its `secret_key`
   # by default. You can change it below and use your own secret key.
-  config.secret_key = '2055f684c8ebf18d6c9304905ebd1600827af9617044cd7ab7fe7427eb6b910d181c1820952c96547044d95f16b6dc70ba1d9363076f19b2a1e861398f8ba15d'
+  # config.secret_key = '1559bcb0b0c41178088004ff72b61a8316d2807104e32bfec3aa8e388e8142e498451d410af2f7947d0354ee66898de41dabb7b3f2c3fc3f9a64a062878bd999'
 
   # ==> Mailer Configuration
   # Configure the e-mail address which will be shown in Devise::Mailer,
@@ -108,7 +108,7 @@ Devise.setup do |config|
   config.stretches = Rails.env.test? ? 1 : 11
 
   # Set up a pepper to generate the hashed password.
-  # config.pepper = '33cdd39e6e314322e2e73197bf5964f01d00fd7c15dddd8d850722e120f4f10c5cdb170225abd363f58da964e58ae13a76be72395b8c3df1f5fbf347850d4ec7'
+  # config.pepper = '15284ad73b6e2ac5926fe71b7d6b14211f67fe829e02d70254d09c2d139f3ccde20aa4e8dd2d917b940915dc6ca9ab4f200d91f844976b7645c93a175b31dfcf'
 
   # Send a notification to the original email when the user's email is changed.
   # config.send_email_changed_notification = false
@@ -257,9 +257,10 @@ Devise.setup do |config|
   # change the failure app, you can configure them inside the config.warden block.
   #
   config.warden do |manager|
-  #   manager.intercept_401 = false
-      manager.strategies.add :jwt, Devise::Strategies::JWT
-      manager.default_strategies(scope: :user).unshift :jwt
+    #   manager.intercept_401 = false
+    manager.strategies.add :jwt, Devise::Strategies::JWT
+    manager.strategies.add :auth_token, Devise::Strategies::AuthToken
+    manager.default_strategies(scope: :user).unshift :auth_token
   end
 
   # ==> Mountable engine configurations
@@ -280,13 +281,32 @@ end
 
 module Devise
   module Strategies
-    class JWT < Base
+    module HasToken
       def valid?
         request.headers["Authorization"].present?
       end
 
+      def get_token
+        request.headers.fetch("Authorization", "").split(" ").last
+      end
+    end
+
+    class AuthToken < Base
+      include HasToken
+
       def authenticate!
-        token   = request.headers.fetch("Authorization", "").split(" ").last
+        token = get_token
+        success! User.joins(:auth_tokens).where(:auth_tokens => {token: token}).first
+
+        # todo: rescue
+      end
+    end
+
+    class JWT < Base
+      include HasToken
+
+      def authenticate!
+        token   = get_token
         payload = JsonWebToken.decode(token)
         success! User.find(payload["sub"])
       rescue ::JWT::ExpiredSignature
@@ -297,4 +317,3 @@ module Devise
     end
   end
 end
-
