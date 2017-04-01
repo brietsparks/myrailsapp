@@ -12,4 +12,3 @@ class Project
 
   # has_many :out, :parentProjects, type: :BELONGS_TO_PARENT_PROJECT, model_class: :Project
 end
-

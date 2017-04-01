@@ -1,5 +1,15 @@
 # Schema for the GraphQL API
 
+ProfileType = GraphQL::ObjectType.define do
+  name 'Profile'
+  description 'The experience tree of a user'
+
+  field :uuid, !types.ID
+  # field :user_id, types.Integer
+  field :projects, types[ProjectType]
+  field :contributions, types[ContributionType]
+end
+
 ProjectType = GraphQL::ObjectType.define do
   name 'Project'
   description 'A contextual grouping of work experiences'
@@ -26,14 +36,38 @@ QueryType = GraphQL::ObjectType.define do
   name 'Query'
   description 'The query root of this schema'
 
-  field :project do
-    type ProjectType
+  field :profile do
+    type ProfileType
     argument :id, !types.ID
-    description 'Find a Project by ID'
-    resolve ->(obj, args, ctx) { Project.find(args['id']) }
+    description 'Find a Profile by user ID'
+    resolve ->(obj, args, ctx) { Profile.find(args['id']) }
   end
 end
 
 Schema = GraphQL::Schema.define do
   query QueryType
+
+  object_from_id ->(id, _ctx) { decode_object(id) }
+  id_from_object ->(obj, type, _ctx) { encode_object(obj, type) }
+  resolve_type ->(object, _ctx) { Schema.types[type_name(object)] }
+end
+
+def type_name(object)
+  object.class.name
+end
+
+def encode_object(object, type)
+  GraphQL::Schema::UniqueWithinType.encode(
+      type.name,
+      object.id,
+      separator: '---'
+  )
+end
+
+def decode_object(id)
+  type_name, object_id = GraphQL::Schema::UniqueWithinType.decode(
+      id,
+      separator: '---'
+  )
+  Object.const_get(type_name).find(object_id)
 end
