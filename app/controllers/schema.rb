@@ -3,33 +3,38 @@
 ProfileType = GraphQL::ObjectType.define do
   name 'Profile'
   description 'The experience tree of a user'
+  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
-  # field :user_id, types.Integer
-  field :projects, types[ProjectType]
-  field :contributions, types[ContributionType]
+  # field :projects, types[ProjectType]
+  connection :projects, ProjectType.connection_type
 end
 
 ProjectType = GraphQL::ObjectType.define do
   name 'Project'
   description 'A contextual grouping of work experiences'
+  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
   field :contributions, types[ContributionType]
-  field :childProjects, types[ProjectType]
-  field :parentProjects, types[ProjectType]
+  # field :childProjects, types[ProjectType]
+  connection :childProjects, ProjectType.connection_type
+  # field :parentProjects, types[ProjectType]
+  connection :parentProjects, ProjectType.connection_type
 end
 
 ContributionType = GraphQL::ObjectType.define do
   name 'Contribution'
   description 'A concrete work experience'
+  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
-  field :parentProjects, types[ProjectType]
+  # field :parentProjects, types[ProjectType]
+  connection :parentProjects, ProjectType.connection_type
 end
 
 QueryType = GraphQL::ObjectType.define do
