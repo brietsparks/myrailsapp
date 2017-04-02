@@ -6,8 +6,28 @@ ProfileType = GraphQL::ObjectType.define do
   interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
-  # field :projects, types[ProjectType]
-  connection :projects, ProjectType.connection_type
+
+  field :projects, types[ProjectType]
+
+  # connection :projects, ProjectType.connection_type do
+  #   argument :since, types.String
+  #
+  #   # Return an Array or ActiveRecord::Relation
+  #   resolve ->(profile, args, ctx) {
+  #     profile.projects.all
+  #   }
+  # end
+
+  # connection :projects, FetchProjects
+end
+
+FetchProjects = GraphQL::Field.define do
+  description 'Fetches projects'
+  type ProjectType.connection_type
+
+  resolve -> (profile, _args, _ctx) {
+    profile.projects.all
+  }
 end
 
 ProjectType = GraphQL::ObjectType.define do
@@ -19,10 +39,10 @@ ProjectType = GraphQL::ObjectType.define do
   field :title, !types.String
   field :summary, types.String
   field :contributions, types[ContributionType]
-  # field :childProjects, types[ProjectType]
-  connection :childProjects, ProjectType.connection_type
-  # field :parentProjects, types[ProjectType]
-  connection :parentProjects, ProjectType.connection_type
+  field :childProjects, types[ProjectType]
+  # connection :childProjects, ProjectType.connection_type, property: :childProjects
+  field :parentProjects, types[ProjectType]
+  # connection :parentProjects, ProjectType.connection_type, property: :parentProjects
 end
 
 ContributionType = GraphQL::ObjectType.define do
@@ -33,8 +53,8 @@ ContributionType = GraphQL::ObjectType.define do
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
-  # field :parentProjects, types[ProjectType]
-  connection :parentProjects, ProjectType.connection_type
+  field :parentProjects, types[ProjectType]
+  # connection :parentProjects, ProjectType.connection_type, property: :parentProjects
 end
 
 QueryType = GraphQL::ObjectType.define do
