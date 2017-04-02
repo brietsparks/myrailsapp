@@ -1,5 +1,8 @@
 # Schema for the GraphQL API
 
+
+ GraphQL::Relay::BaseConnection.register_connection_implementation(Neo4j::ActiveNode::HasN::AssociationProxy, GraphQL::Relay::RelationConnection)
+
 ProfileType = GraphQL::ObjectType.define do
   name 'Profile'
   description 'The experience tree of a user'
