@@ -1,43 +1,53 @@
 # Schema for the GraphQL API
 
-
- GraphQL::Relay::BaseConnection.register_connection_implementation(Neo4j::ActiveNode::HasN::AssociationProxy, GraphQL::Relay::RelationConnection)
-
 ProfileType = GraphQL::ObjectType.define do
   name 'Profile'
   description 'The experience tree of a user'
-  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
-  # field :projects, types[ProjectType]
-  connection :projects, ProjectType.connection_type
+  # field :user_id, types.Integer
+  field :projects, types[ProjectType]
+  field :contributions, types[ContributionType]
 end
 
 ProjectType = GraphQL::ObjectType.define do
   name 'Project'
   description 'A contextual grouping of work experiences'
-  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
   field :contributions, types[ContributionType]
-  # field :childProjects, types[ProjectType]
-  connection :childProjects, ProjectType.connection_type
-  # field :parentProjects, types[ProjectType]
-  connection :parentProjects, ProjectType.connection_type
+  field :childProjects, types[ProjectType]
+  field :parentProjects, types[ProjectType]
 end
 
 ContributionType = GraphQL::ObjectType.define do
   name 'Contribution'
   description 'A concrete work experience'
-  interfaces [GraphQL::Relay::Node.interface]
 
   field :uuid, !types.ID
   field :title, !types.String
   field :summary, types.String
-  # field :parentProjects, types[ProjectType]
-  connection :parentProjects, ProjectType.connection_type
+  field :parentProjects, types[ProjectType]
+end
+
+AddProjectMutationType = GraphQL::InputObjectType.define do
+  name 'AddProjectMutationType'
+  description 'AddProject mutation'
+
+  argument :profileId, !types.String do
+    description 'profile uuid'
+  end
+
+  argument :title, !types.String do
+    description 'Project title'
+  end
+
+  argument :parentProjectId, types.String do
+    description 'Parent project uuid'
+  end
+
 end
 
 QueryType = GraphQL::ObjectType.define do
@@ -52,8 +62,72 @@ QueryType = GraphQL::ObjectType.define do
   end
 end
 
+MutationType = GraphQL::ObjectType.define do
+  name 'Mutation'
+
+  field :addProject do
+    type ProjectType
+
+    argument :profileId, !types.ID
+    argument :title, !types.String
+    argument :parentProjectId, types.ID
+
+    description 'Adds a project'
+
+    resolve ->(t, args, c) {
+      profile_id = args[:profileId]
+      title = args[:title]
+      parent_project_id = args[:parentProjectId]
+
+      begin
+        profile = Profile.find(profile_id)
+      rescue Neo4j::ActiveNode::Labels::RecordNotFound
+        return GraphQL::ExecutionError.new("Invalid profileId #{profile_id}")
+      end
+
+      project = Project.create(title: title)
+      if parent_project_id
+        project.parentProjects
+      else
+        project.profile = profile
+      end
+
+      project.save
+
+      return project
+
+    }
+
+  end
+
+  field :removeProject do
+    type GraphQL::BOOLEAN_TYPE
+
+    argument :projectId, !types.ID
+
+    description 'Removes a project'
+
+    resolve ->(t, args, c) {
+      project_id = args['projectId']
+
+      begin
+        project = Project.find(project_id)
+      rescue Neo4j::ActiveNode::Labels::RecordNotFound
+        return GraphQL::ExecutionError.new("Invalid projectId #{profile_id}")
+      end
+
+      project.destroy
+
+      return true
+
+    }
+  end
+end
+
+
 Schema = GraphQL::Schema.define do
   query QueryType
+  mutation MutationType
 
   object_from_id ->(id, _ctx) { decode_object(id) }
   id_from_object ->(obj, type, _ctx) { encode_object(obj, type) }
