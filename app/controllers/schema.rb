@@ -81,15 +81,21 @@ MutationType = GraphQL::ObjectType.define do
 
       begin
         profile = Profile.find(profile_id)
-      rescue Neo4j::ActiveNode::Labels::RecordNotFound
-        return GraphQL::ExecutionError.new("Invalid profileId #{profile_id}")
-      end
+        project = Project.create(title: title)
 
-      project = Project.create(title: title)
-      if parent_project_id
-        project.parentProjects
-      else
-        project.profile = profile
+        if parent_project_id
+          parent_project = Project.find(parent_project_id)
+          project.parentProjects << parent_project
+          parent_project.childProjects << project
+          parent_project.save
+        else
+          project.profile = profile
+          profile.projects << project
+          profile.save
+        end
+
+      rescue Neo4j::ActiveNode::Labels::RecordNotFound
+        return GraphQL::ExecutionError.new("Error occurred trying to find node")
       end
 
       project.save
